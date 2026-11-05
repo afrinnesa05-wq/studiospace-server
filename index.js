@@ -7,22 +7,18 @@ import bookingRoutes from './src/routes/booking.routes.js'
 import { verifyAuth } from './src/middleware/auth.middleware.js'
 
 const app = express()
-const port = 8000
-
-// Connect MongoDB
-connectToMongoDB()
+const port = process.env.PORT || 8000
 
 // CORS configuration
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+const allowedOrigins = (
+  process.env.FRONTEND_URL || 'http://localhost:3000'
+)
   .split(',')
   .map((origin) => origin.trim().replace(/\/$/, ''))
   .filter(Boolean)
 
 app.use((req, res, next) => {
   const origin = req.headers.origin
-
-  console.log('Request Origin:', origin)
-  console.log('Allowed Origins:', allowedOrigins)
 
   if (origin && allowedOrigins.includes(origin.replace(/\/$/, ''))) {
     res.setHeader('Access-Control-Allow-Origin', origin)
@@ -46,7 +42,7 @@ app.use((req, res, next) => {
   next()
 })
 
-// Limit JSON request body size to 1MB
+// JSON body limit
 app.use(express.json({ limit: '1mb' }))
 
 // Request logger
@@ -57,7 +53,10 @@ app.use((req, res, next) => {
 
 // Root route
 app.get('/', (req, res) => {
-  res.json({ message: 'Server is running fine!' })
+  res.json({
+    success: true,
+    message: 'StudioSpace server is running!',
+  })
 })
 
 // Authentication check
@@ -71,12 +70,6 @@ app.get('/api/auth-check', verifyAuth, (req, res) => {
 // API routes
 app.use('/api/studios', studioRoutes)
 app.use('/api/bookings', bookingRoutes)
-
-console.log('Booking routes mounted successfully')
-console.log(
-  'Registered booking routes:',
-  bookingRoutes.stack.map((layer) => layer.route?.path).filter(Boolean)
-)
 
 // 404 handler
 app.use((req, res) => {
@@ -102,7 +95,18 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running at port ${port}`)
-})
+// Start server after MongoDB connection
+async function startServer() {
+  try {
+    await connectToMongoDB()
+
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`StudioSpace server is running on port ${port}`)
+    })
+  } catch (error) {
+    console.error('Server startup failed:', error)
+    process.exit(1)
+  }
+}
+
+startServer()

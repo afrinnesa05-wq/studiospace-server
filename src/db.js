@@ -1,13 +1,11 @@
+
 import 'dotenv/config'
 import { MongoClient } from 'mongodb'
-import dns from 'node:dns'
-
-dns.setServers(['8.8.8.8', '1.1.1.1'])
 
 const uri = process.env.MONGODB_URI
 
 if (!uri) {
-  throw new Error('MONGODB_URI is missing from .env')
+  throw new Error('MONGODB_URI is missing from environment variables.')
 }
 
 const client = new MongoClient(uri, {
@@ -20,17 +18,24 @@ let isConnected = false
 
 export async function connectToMongoDB() {
   try {
+    if (isConnected) {
+      return client
+    }
+
     await client.connect()
     await db.command({ ping: 1 })
 
     isConnected = true
-    console.log('You successfully connected to MongoDB!')
+
+    console.log('Successfully connected to MongoDB!')
 
     return client
-  } catch (err) {
+  } catch (error) {
     isConnected = false
-    console.error('MongoDB connection failed:', err)
-    throw err
+
+    console.error('MongoDB connection failed:', error)
+
+    throw error
   }
 }
 
