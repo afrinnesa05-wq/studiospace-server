@@ -1,4 +1,3 @@
-
 import 'dotenv/config'
 import { MongoClient } from 'mongodb'
 import dns from 'node:dns'
