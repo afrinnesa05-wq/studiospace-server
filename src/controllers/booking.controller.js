@@ -17,6 +17,7 @@ export async function createBooking(req, res, next) {
       endTime,
     } = req.body
 
+    // Validate required fields
     if (!studioId || !bookingDate || !startTime || !endTime) {
       return res.status(400).json({
         success: false,
@@ -24,6 +25,7 @@ export async function createBooking(req, res, next) {
       })
     }
 
+    // Validate studio ID
     if (!isValidObjectId(studioId)) {
       return res.status(400).json({
         success: false,
@@ -31,6 +33,7 @@ export async function createBooking(req, res, next) {
       })
     }
 
+    // Validate booking date format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) {
       return res.status(400).json({
         success: false,
@@ -38,6 +41,7 @@ export async function createBooking(req, res, next) {
       })
     }
 
+    // Validate time format
     const validTime = /^([01]\d|2[0-3]):[0-5]\d$/
 
     if (!validTime.test(startTime) || !validTime.test(endTime)) {
@@ -47,6 +51,7 @@ export async function createBooking(req, res, next) {
       })
     }
 
+    // Validate time range
     if (startTime >= endTime) {
       return res.status(400).json({
         success: false,
@@ -54,9 +59,10 @@ export async function createBooking(req, res, next) {
       })
     }
 
-    // Authenticated user from JWT
+    // Get authenticated user from JWT
     const user = req.user
 
+    // Find studio
     const studio = await getStudiosCollection().findOne({
       _id: new ObjectId(studioId),
     })
@@ -68,11 +74,13 @@ export async function createBooking(req, res, next) {
       })
     }
 
-    // Check overlap with confirmed bookings
+    // Check overlapping pending or confirmed bookings
     const overlappingBooking = await getBookingsCollection().findOne({
       studioId: new ObjectId(studioId),
       bookingDate,
-      status: 'Confirmed',
+      status: {
+        $in: ['Pending', 'Confirmed'],
+      },
       startTime: { $lt: endTime },
       endTime: { $gt: startTime },
     })
@@ -84,6 +92,7 @@ export async function createBooking(req, res, next) {
       })
     }
 
+    // Build booking document
     const bookingDocument = buildBookingDocument({
       studio,
       user,
@@ -92,6 +101,7 @@ export async function createBooking(req, res, next) {
       endTime,
     })
 
+    // Save booking
     const result = await getBookingsCollection().insertOne(
       bookingDocument
     )
@@ -134,6 +144,7 @@ export async function cancelBooking(req, res, next) {
     const { id } = req.params
     const email = req.user.email
 
+    // Validate booking ID
     if (!isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
@@ -141,6 +152,7 @@ export async function cancelBooking(req, res, next) {
       })
     }
 
+    // Cancel only the user's pending booking
     const result = await getBookingsCollection().updateOne(
       {
         _id: new ObjectId(id),
@@ -170,4 +182,3 @@ export async function cancelBooking(req, res, next) {
     next(error)
   }
 }
-
