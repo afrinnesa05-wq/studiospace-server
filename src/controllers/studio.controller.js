@@ -27,6 +27,7 @@ function httpError(status, message, errors) {
   return error
 }
 
+// Escape special regex characters from user input
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -64,6 +65,7 @@ export async function listStudios(req, res, next) {
 
     if (req.query.category) {
       const value = escapeRegex(String(req.query.category).trim())
+
       filter.category = {
         $regex: `^${value}$`,
         $options: 'i',
@@ -72,6 +74,7 @@ export async function listStudios(req, res, next) {
 
     if (req.query.location) {
       const value = escapeRegex(String(req.query.location).trim())
+
       filter.location = {
         $regex: value,
         $options: 'i',
@@ -92,8 +95,8 @@ export async function listStudios(req, res, next) {
     if (req.query.minPrice !== undefined) {
       const value = Number(req.query.minPrice)
 
-      if (!Number.isFinite(value)) {
-        throw httpError(400, 'minPrice must be a number.')
+      if (!Number.isFinite(value) || value < 0) {
+        throw httpError(400, 'minPrice must be a non-negative number.')
       }
 
       filter.hourlyRate = {
@@ -105,8 +108,8 @@ export async function listStudios(req, res, next) {
     if (req.query.maxPrice !== undefined) {
       const value = Number(req.query.maxPrice)
 
-      if (!Number.isFinite(value)) {
-        throw httpError(400, 'maxPrice must be a number.')
+      if (!Number.isFinite(value) || value < 0) {
+        throw httpError(400, 'maxPrice must be a non-negative number.')
       }
 
       filter.hourlyRate = {
@@ -312,3 +315,4 @@ export async function deleteStudio(req, res, next) {
     next(error)
   }
 }
+
