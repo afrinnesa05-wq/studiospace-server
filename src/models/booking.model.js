@@ -8,8 +8,12 @@ export function getBookingsCollection() {
   return getDb().collection(COLLECTION_NAME)
 }
 
+// Validate a MongoDB ObjectId strictly
 export function isValidObjectId(id) {
-  return ObjectId.isValid(id)
+  return (
+    typeof id === 'string' &&
+    /^[0-9a-fA-F]{24}$/.test(id)
+  )
 }
 
 export function buildBookingDocument({
@@ -57,3 +61,4 @@ export function calculateTotalPrice(hourlyRate, startTime, endTime) {
 
   return totalHours * hourlyRate
 }
+
