@@ -6,7 +6,6 @@ import studioRoutes from './src/routes/studio.routes.js'
 import bookingRoutes from './src/routes/booking.routes.js'
 import { verifyAuth } from './src/middleware/auth.middleware.js'
 
-
 const app = express()
 const port = 8000
 
@@ -47,8 +46,8 @@ app.use((req, res, next) => {
   next()
 })
 
-// Parse JSON
-app.use(express.json())
+// Limit JSON request body size to 1MB
+app.use(express.json({ limit: '1mb' }))
 
 // Request logger
 app.use((req, res, next) => {
@@ -60,12 +59,15 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   res.json({ message: 'Server is running fine!' })
 })
+
+// Authentication check
 app.get('/api/auth-check', verifyAuth, (req, res) => {
   res.json({
     success: true,
     message: 'JWT verified successfully!',
   })
 })
+
 // API routes
 app.use('/api/studios', studioRoutes)
 app.use('/api/bookings', bookingRoutes)
@@ -92,7 +94,10 @@ app.use((err, req, res, next) => {
 
   res.status(status).json({
     success: false,
-    message: err.message || 'Internal server error',
+    message:
+      status === 413
+        ? 'Request body is too large. Maximum allowed size is 1MB.'
+        : err.message || 'Internal server error',
     ...(err.errors ? { errors: err.errors } : {}),
   })
 })
