@@ -1,3 +1,4 @@
+
 import { ObjectId } from 'mongodb'
 import { getDb } from '../db.js'
 
@@ -24,14 +25,14 @@ const UPDATABLE_FIELDS = new Set([
   'rating',
 ])
 
-// Server-managed fields — rejected if a client tries to set them.
+// Server-managed fields
 const SERVER_MANAGED_FIELDS = new Set([
   '_id',
   'createdAt',
   'updatedAt',
 ])
 
-// Required when creating a studio (POST).
+// Required when creating a studio
 const REQUIRED_FIELDS = [
   'title',
   'category',
@@ -117,17 +118,16 @@ function validateField(name, value) {
     case 'images':
     case 'amenities':
       return Array.isArray(value) &&
-        value.every((item) => typeof item === 'string')
+        value.every((item) => isNonEmptyString(item))
         ? null
-        : `"${name}" must be an array of strings.`
+        : `"${name}" must be an array of non-empty strings.`
 
     default:
       return null
   }
 }
 
-// Validates a POST body (full) or a PUT body (partial).
-// Returns { valid: boolean, errors: string[] }.
+// Validate a POST body (full) or a PUT body (partial).
 export function validateStudioInput(body, { partial = false } = {}) {
   const errors = []
 
@@ -183,7 +183,7 @@ export function validateStudioInput(body, { partial = false } = {}) {
   }
 }
 
-// Builds the document stored in MongoDB for a new studio.
+// Build a document for a new studio.
 export function buildStudioDocument(body) {
   const now = new Date()
 
@@ -198,17 +198,17 @@ export function buildStudioDocument(body) {
     imageUrl: typeof body.imageUrl === 'string'
       ? body.imageUrl.trim()
       : '',
-    images: body.images ?? [],
-    amenities: body.amenities ?? [],
+    images: (body.images ?? []).map((image) => image.trim()),
+    amenities: (body.amenities ?? []).map((amenity) => amenity.trim()),
     hostName: body.hostName.trim(),
-    hostEmail: body.hostEmail.trim(),
+    hostEmail: body.hostEmail.trim().toLowerCase(),
     rating: body.rating ?? 0,
     createdAt: now,
     updatedAt: now,
   }
 }
 
-// Builds the $set object for a partial update (only provided fields).
+// Build the $set object for a partial update.
 export function buildUpdateSet(body) {
   const set = {}
 
@@ -217,9 +217,19 @@ export function buildUpdateSet(body) {
 
     const value = body[key]
 
-    set[key] = typeof value === 'string'
-      ? value.trim()
-      : value
+    if (typeof value === 'string') {
+      set[key] = value.trim()
+    } else if (Array.isArray(value)) {
+      set[key] = value.map((item) =>
+        typeof item === 'string' ? item.trim() : item
+      )
+    } else {
+      set[key] = value
+    }
+  }
+
+  if (typeof set.hostEmail === 'string') {
+    set.hostEmail = set.hostEmail.toLowerCase()
   }
 
   return set
