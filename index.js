@@ -10,31 +10,34 @@ const app = express()
 const port = process.env.PORT || 8000
 
 // CORS configuration
-const allowedOrigins = (
-  process.env.FRONTEND_URL || 'http://localhost:3000'
-)
-  .split(',')
-  .map((origin) => origin.trim().replace(/\/$/, ''))
+const allowedOrigins = [
+  'https://studiospace-six.vercel.app',
+  'http://localhost:3000',
+  ...(process.env.FRONTEND_URL || '').split(','),
+]
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean)
 
 app.use((req, res, next) => {
   const origin = req.headers.origin
 
-  if (origin && allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+  if (origin && allowedOrigins.includes(origin.replace(/\/+$/, ''))) {
     res.setHeader('Access-Control-Allow-Origin', origin)
     res.setHeader('Access-Control-Allow-Credentials', 'true')
     res.setHeader('Vary', 'Origin')
+
     res.setHeader(
       'Access-Control-Allow-Methods',
-      'GET,POST,PUT,PATCH,DELETE,OPTIONS'
+      'GET, POST, PUT, PATCH, DELETE, OPTIONS'
     )
+
     res.setHeader(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization'
     )
-    res.setHeader('Access-Control-Max-Age', '86400')
   }
 
+  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return res.status(204).end()
   }
@@ -110,3 +113,4 @@ async function startServer() {
 }
 
 startServer()
+
